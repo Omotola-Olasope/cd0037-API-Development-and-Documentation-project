@@ -37,19 +37,9 @@ def create_app(test_config=None):
 
     @app.after_request
     def after_request(response):
-        response.headers.add('Access-Control-Allow-Headers', 'Content-Type, Authorization, true')
+        response.headers.add('Access-Control-Allow-Headers', 'Content-Type, Authorization')
         response.headers.add('Access-Control-Allow-Methods', 'GET, POST, PATCH, DELETE, OPTIONS')
         return response
-
-#    @app.route('/categories')
-#    def get_categories():
-#        categories = Category.query.all()
-#        formatted_categories = [category.format() for category in categories]
-#
-#        return jsonify({
-#            'success': True,          
-#            'categories': formatted_categories
-#        })
 
     @app.route('/categories')
     def get_categories(): 
@@ -78,20 +68,157 @@ def create_app(test_config=None):
             'total_questions': len(Question.query.all())
         })
 
-    @app.route('/categories/<int:category_id>/questions')
-    def get_questions_in_category(): 
-        selection = Question.query.filter_by(Question.category).all()
-        current_question = paginate_questions(request, selection)
+    @app.route('/categories/<int:category_id>')
+    def get_specific_category(category_id):
+        category = Category.query.filter(Category.id == category_id).one_or_none()
 
-        if len(current_question) == 0:
+        if category is None:
             abort(404)
         
-        return jsonify({
-            'success': True,
-            'questions': current_question,
-            'total_questions': len(Question.query.all())
-        })
+        else:
+            return jsonify({
+                'success': True,
+                'category': category.format()
+            })
 
+#    @app.route('/categories/${id}/questions')
+#    def get_questions_by_category(id):
+#        selection = Question.query.filter(Question.id == id).all()
+#        current_question = paginate_questions(request, selection)
+#
+#        if len(current_question) == 0:
+#            abort(404)
+#                
+#        return jsonify({
+#            'success': True,
+#            'questions': current_question,
+#            'total_questions': len(Question.query.filter(Question.id == id).all()),
+#            'current_category': id})
+
+    @app.route('/questions/<int:question_id>', methods=['DELETE'])
+    def delete_question(question_id):
+        try:
+            question = Question.query.filter(Question.id == question_id).one_or_none()
+
+            if question is None:
+                abort(404)
+
+            question.delete()
+            
+            return jsonify({"success": True, "id": question.id})
+
+        except:
+            abort(422)
+    
+#    @app.route('/quizzes', methods=['POST'])
+#    def next_quiz():
+#        body = request.get_json()
+#
+#        previous_questions = body.get.getlist('previousQuestions', None)
+#        quiz_category = body.get('current_category', None)
+#        
+#        try:
+#            quiz = Question(title=new_title, author=new_author, rating=new_rating)
+#            book.insert()
+#
+#            selection = Book.query.order_by(Book.id).all()
+#            current_books = paginate_books(request, selection)
+#
+#            return jsonify(
+#                {
+#                    "success": True,
+#                    "created": book.id,
+#                    "books": current_books,
+#                    "total_books": len(Book.query.all()),
+#                }
+#            )
+#
+#        except:
+#            abort(422)
+
+    @app.route('/questions', methods=['POST'])
+    def create_question():
+        body = request.get_json()
+
+        new_question = body.get("question", None)
+        new_answer = body.get("answer", None)
+        new_difficulty = body.get("difficulty", None)
+        new_category = body.get("category", None)
+
+        try:
+            question = Question(question=new_question, answer=new_answer, category=new_category, difficulty=new_difficulty)
+            question.insert()
+
+            return jsonify(
+                {
+                    "success": True,                    
+                })
+
+        except:
+            abort(422)
+
+    @app.route('/questions', methods=['POST'])
+    def search_question():
+        body = request.get_json()
+
+        searchTerm = body.get('searchTerm', None)
+        question_search = "%{}%".format(searchTerm)
+        searchResults = Question.query.filter(Question.question.ilike(question_search)).all()
+
+        try:
+            questionResult={
+                'data': [],
+                'totalQuestions': len(searchResults)                
+            }
+            for question in searchResults:
+                questionResult['data'].append({
+                'id': question.id,
+                'question': question.question,
+                'answer': question.answer,
+                'difficulty': question.difficulty,
+                'category': question.category                
+                })
+                    
+            return jsonify(
+                {
+                    'success': True,
+                    'questions': questionResult,
+                    'currentCategory': question.category                  
+                })
+
+        except:
+            abort(422)
+
+
+    @app.errorhandler(400)
+    def bad_request(error):
+        return (
+            jsonify({"success": False, "error": 400, "message": "bad request"}), 400
+        )
+
+    @app.errorhandler(404)
+    def not_found(error):
+        return (
+            jsonify({"success": False, "error": 404, "message": "resource not found"}), 404
+        )
+
+    @app.errorhandler(405)
+    def not_found(error):
+        return (
+            jsonify({"success": False, "error": 405, "message": "method not allowed"}), 405
+        )
+
+    @app.errorhandler(422)
+    def unprocessable(error):
+        return (
+            jsonify({"success": False, "error": 422, "message": "unprocessable"}), 422
+        )
+
+    @app.errorhandler(500)
+    def internal_server(error):
+        return (
+            jsonify({"success": False, "error": 500, "message": "internal server error"}), 500
+        )
 
     """
     @TODO: Set up CORS. Allow '*' for origins. Delete the sample route after completing the TODOs
