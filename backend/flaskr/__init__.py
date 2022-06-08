@@ -44,15 +44,14 @@ def create_app(test_config=None):
     @app.route('/categories')
     def get_categories(): 
         selection = Category.query.order_by(Category.id).all()
-        current_categories = paginate_categories(request, selection)
+        try:
+            return jsonify({
+                'success': True,
+                'categories': {category.id: category.type for category in selection}
+            })
 
-        if len(current_categories) == 0:
+        except:
             abort(404)
-        
-        return jsonify({
-            'success': True,
-            'categories': current_categories
-        })
 
     @app.route('/questions')
     def get_questions(): 
@@ -61,7 +60,7 @@ def create_app(test_config=None):
         categories = Category.query.order_by(Category.type).all()
 
         if len(current_question) == 0:
-            abort(404)
+            abort(422)
         
         return jsonify({
             'success': True,
@@ -70,19 +69,6 @@ def create_app(test_config=None):
             'categories': {category.id: category.type for category in categories},
             'current_category': None
         })
-
-    @app.route('/categories/<int:category_id>')
-    def get_specific_category(category_id):
-        category = Category.query.filter(Category.id == category_id).one_or_none()
-
-        if category is None:
-            abort(404)
-        
-        else:
-            return jsonify({
-                'success': True,
-                'category': category.format()
-            })
 
     @app.route('/categories/<int:category_id>/questions')
     def get_questions_by_category(category_id):
@@ -108,7 +94,7 @@ def create_app(test_config=None):
 
             question.delete()
             
-            return jsonify({"success": True, "id": question.id})
+            return jsonify({"success": True, "deleted": question.id})
 
         except:
             abort(422)
@@ -148,9 +134,15 @@ def create_app(test_config=None):
             question = Question(question=new_question, answer=new_answer, category=new_category, difficulty=new_difficulty)
             question.insert()
 
+            selection = Question.query.order_by(Question.id).all()
+            current_question = paginate_questions(request, selection)
+
             return jsonify(
                 {
-                    "success": True,                    
+                    "success": True,
+                    "created": question.id,
+                    'questions': current_question,
+                    'total_questions': len(Question.query.all())                
                 })
 
         except:
