@@ -100,3 +100,12 @@ Returns an object with these keys: success, error and message.
 Returns an object with these keys: success, error and message.
 
 {"success": false, "error": 500, "message": "internal server error"}
+
+# Testing
+
+To run the tests, run
+
+dropdb trivia_test
+createdb trivia_test
+psql trivia_test < trivia.psql
+python3 test_flaskr.py
