@@ -1,8 +1,9 @@
 import os
 import unittest
 import json
+import random
 from flask_sqlalchemy import SQLAlchemy
-#from settings import DB_NAME, DB_USER, DB_PASSWORD
+from settings import DB_NAME, DB_USER, DB_PASSWORD, DB_HOST
 
 from flaskr import create_app
 from models import setup_db, Question, Category
@@ -16,7 +17,8 @@ class TriviaTestCase(unittest.TestCase):
         self.app = create_app()
         self.client = self.app.test_client
         self.database_name = "trivia_test"
-        self.database_path = "postgresql://{}/{}".format('postgres:postgres@localhost:5432', self.database_name)
+        self.database_path = 'postgresql+psycopg2://{}:{}@{}/{}'.format(DB_USER, DB_PASSWORD, DB_HOST, self.database_name)
+        #self.database_path = "postgresql://{}/{}".format('DB_USER:DB_PASSWORD@localhost:5432', self.database_name)
         setup_db(self.app, self.database_path)
 
         # binds the app to the current context
@@ -106,11 +108,10 @@ class TriviaTestCase(unittest.TestCase):
         self.assertEqual(data["message"], "resource not found")
 
     def test_play_quiz(self):
-        new_quiz = {'previous_questions': [], 'quiz_category': {'id': '3', 'type': 'Geography'}}
+        new_quiz = {'previous_questions':[], 'quiz_category' : {'type': 'Science', 'id': 1}}
         res = self.client().post('/quizzes', json=new_quiz)
         data = json.loads(res.data)
 
-        self.assertEqual(res.status_code, 422)
         self.assertEqual(data['success'], True)
         self.assertTrue(data['question'])
 

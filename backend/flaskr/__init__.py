@@ -98,19 +98,20 @@ def create_app(test_config=None):
 
         except:
             abort(422)
-    
+
     @app.route('/quizzes', methods=['POST'])
     def play_quiz():
+
         try:
             body = request.get_json()
+
             category = body.get('quiz_category')
             previous_questions = body.get('previous_questions')
-            category_id = category['id']
 
-            if category_id == 0:
-                available_questions = Question.query.filter(Question.id.notin_(previous_questions)).all()
+            if category['type'] == 'click':
+                available_questions = Question.query.filter(Question.id.notin_((previous_questions))).all()
             else:
-                available_questions = Question.query.filter_by(Question.category==category_id).filter(Question.id.notin_(previous_questions)).all()
+                available_questions = Question.query.filter_by(category=category['id']).filter(Question.id.notin_((previous_questions))).all()
 
             current_question = available_questions[random.randrange(0, len(available_questions))].format() if len(available_questions) > 0 else None
 
@@ -119,7 +120,7 @@ def create_app(test_config=None):
                 'question': current_question
             })
         except:
-            abort(422)        
+            abort(422)  
 
     @app.route('/questions', methods=['POST'])
     def create_question():
